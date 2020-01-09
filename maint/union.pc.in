@@ -1,0 +1,15 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+datarootdir=@exec_prefix@/share
+conceptual_libs=@CONCEPTUAL_LIBS@
+conceptual_cflags=@CONCEPTUAL_CFLAGS@
+
+Name: Union
+Description: Workload Manager for Integration of Conceptual as An Online Workload for CODES
+Version: 0.1
+URL: git@github.com:SPEAR-IIT/Union.git
+Requires: 
+Libs: -L${libdir} -lunion ${conceptual_libs}
+Cflags: -I${includedir} ${conceptual_cflags}

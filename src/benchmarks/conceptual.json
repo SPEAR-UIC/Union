@@ -1,0 +1,24 @@
+{
+  "latency": {
+    "argc": 5,
+    "argv": [
+      "latency",
+      "--reps",
+      "100",
+      "--maxbytes",
+      "1M"
+    ]
+  },
+  "cosmoflow": {
+    "argc": 7,
+    "argv": [
+      "cosmoflow",
+      "--msgsize",
+      "7379200",
+      "--reps",
+      "10",
+      "--compute",
+      "129"
+    ]
+  }  
+}
