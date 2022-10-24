@@ -1,5 +1,5 @@
 # Union
-Workload Manager for Integration of Conceptual as An Online Workload for CODES
+Workload Manager for Integration of Conceptual as an Online Workload for CODES
 
 
 # Installation
@@ -14,7 +14,6 @@ cd conceptual-1.5.1
 ./configure --prefix=/path/to/conceptual/install
 make
 make install
-cd ../
 ```
 
 ### Installing Boost-Python (currently mandatory, we may remove this soon)
@@ -26,7 +25,6 @@ tar xvf boost_1_68_0.tar.gz
 cd boost_1_68_0 
 ./bootstrap.sh --prefix=/path/to/boost/install  --with-libraries=python
 ./b2 install
-cd ../
 ```
 
 ### Installing Union    
@@ -46,9 +44,7 @@ make install
 git clone https://github.com/carothersc/ROSS.git 
 mkdir build-ross
 cd build-ross
-
 cmake -DCMAKE_INSTALL_PREFIX:path=path/to/ross/install -DCMAKE_C_COMPILER=$(which mpicc) -DCMAKE_CXX_COMPILER=$(which mpicxx) ../ROSS
-
 make install
 ```
 
@@ -73,9 +69,10 @@ make
 make install
 ```
 
-### Installing CODES (IIT duplicated version)
+### Installing CODES (SPEAR-IIT cloned version)
 
 ```bash
+git clone https://github.com/SPEAR-IIT/CODES.git
 cd codes
 ./prepare.sh
 mkdir build
