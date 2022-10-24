@@ -33,8 +33,65 @@ cd ../
 ```bash
 cd union
 ./prepare.sh
-./configure --with-boost=/path/to/boost/install --with-conceptual=/path/to/conceptual/install --prefix=/path/to/union/install CC=mpicc CXX=mpicxx CFLAGS='-g -O0' CXXFLAGS='-g -O0'
+./configure --with-boost=/path/to/boost/install --with-conceptual=/path/to/conceptual/install --prefix=/path/to/union/install CC=mpicc CXX=mpicxx
 make
 make install
 ```
+
+# Workload Simulation with CODES
+
+### Installing ROSS
+
+```bash
+git clone https://github.com/carothersc/ROSS.git 
+mkdir build-ross
+cd build-ross
+
+cmake -DCMAKE_INSTALL_PREFIX:path=path/to/ross/install -DCMAKE_C_COMPILER=$(which mpicc) -DCMAKE_CXX_COMPILER=$(which mpicxx) ../ROSS
+
+make install
+```
+
+### Installing Argobots
+
+```bash
+git clone https://github.com/pmodels/argobots.git
+./autogen.sh
+./configure --prefix=/path/to/argobots/install
+make
+make install
+```
+
+### Installing SWM workloads
+
+```bash
+git clone https://github.com/codes-org/SWM-workloads.git
+cd swm
+./prepare.sh
+./configure --with-boost=/path/to/boost/install --prefix=/path/to/swm/install CC=mpicc CXX=mpicxx
+make
+make install
+```
+
+### Installing CODES (IIT duplicated version)
+
+```bash
+cd codes
+./prepare.sh
+mkdir build
+cd build
+../configure --with-online=true --with-boost=/path/to/boost/install PKG_CONFIG_PATH=/home/path/to/argobots/install/lib/pkgconfig:/path/to/ross/install/lib/pkgconfig:/path/to/union/install/lib/pkgconfig:/path/to/swm/install/lib/pkgconfig --with-union=true --prefix=/path/to/codes/install CC=mpicc CXX=mpicxx 
+make
+make install
+```
+
+### Run Test Simulations
+The test directory includes all necessary configuration files to run the test simulation.
+
+```bash
+cd union/test/
+/path/to/codes/install/bin/model-net-mpi-replay --sync=1 --workload_type=conc-online --lp-io-use-suffix=1 --workload_name=conceptual-jacobi3d --num_net_traces=64 --alloc_file=node_alloc.conf  --lp-io-dir=outputdir -- df1d-72-adp.conf 
+```
+
+
 
