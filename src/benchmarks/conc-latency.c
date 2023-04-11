@@ -132,7 +132,7 @@ int misaligned;         /* 1=misaligned from a page; 0=align as specified */
 int touching;           /* 1=touch every word before sending */
 int verification;       /* 1=fill message buffer with known contents */
 void *buffer;           /* Pointer to message memory */
-MPI_Request * handle;   /* MPI handle representing an asynchronous send */
+UNION_Request * handle;   /* MPI handle representing an asynchronous send */
 } CONC_SEND_EVENT;
 
 /* Describe a synchronous or asynchronous receive event. */
@@ -149,7 +149,7 @@ int misaligned;         /* 1=misaligned from a page; 0=align as specified */
 int touching;           /* 1=touch every word after reception */
 int verification;       /* 1=verify that all bits are correct */
 void *buffer;           /* Pointer to message memory */
-MPI_Request * handle;   /* MPI handle representing an asynchronous receive */
+UNION_Request * handle;   /* MPI handle representing an asynchronous receive */
 } CONC_RECV_EVENT;
 
 /* Describe a wait-for-asynchronous-completions event. */
@@ -169,7 +169,7 @@ int spin0sleep1;        /* 0=spin; 1=sleep */
 
 /* Describe a barrier synchronization event. */
 typedef struct {
-MPI_Comm communicator;   /* Set of tasks to synchronize */
+UNION_Comm communicator;   /* Set of tasks to synchronize */
 } CONC_SYNC_EVENT;
 
 /* Describe a walk over a memory-region. */
@@ -198,7 +198,7 @@ void *buffer;           /* Pointer to message memory */
 ncptl_int size2;   /* Number of bytes to receive in the many-to-many case */
 ncptl_int bufferofs2;   /* Byte offset into the message buffer in the many-to-many case */
 void * buffer2;   /* Pointer to receive-message memory in the many-to-many case */
-MPI_Comm communicator;   /* Set of tasks to multicast to/from */
+UNION_Comm communicator;   /* Set of tasks to multicast to/from */
 int root;   /* source's rank within communicator */
 int * sndvol;   /* Volume of data to send to each rank in the communicator */
 int * snddisp;   /* Offset from buffer of each message to send */
@@ -223,9 +223,9 @@ int sending;            /* 1=we're a sender */
 int receiving;          /* 1=we're a receiver */
 void *buffer;           /* Pointer to message memory */
 void * altbuffer;   /* Pointer to additional message memory */
-MPI_Comm sendcomm;   /* Set of tasks to reduce from */
-MPI_Comm recvcomm;   /* Set of tasks to reduce to */
-MPI_Datatype datatype;   /* MPI datatype to reduce */
+UNION_Comm sendcomm;   /* Set of tasks to reduce from */
+UNION_Comm recvcomm;   /* Set of tasks to reduce to */
+UNION_Datatype datatype;   /* MPI datatype to reduce */
 int reducetype;   /* 0=reduce; 1=allreduce; 2=reduce+bcast */
 ncptl_int reduceroot;   /* Root task of the reduction if reducetype is 0 or 2 */
 ncptl_int bcastroot;   /* Root task of the multicast if reducetype is 2 */
@@ -361,13 +361,13 @@ static char *logfiletmpl;   /* Template for the log file's name */
 /* Global variables specific to the c_union backend */
 static ncptl_int mpi_is_running = 0;   /* 1=MPI has been initialized */
 static NCPTL_QUEUE * recvreqQ;   /* List of MPI receive requests */
-static MPI_Request * recvrequests;   /* List version of recvreqQ */
+static UNION_Request * recvrequests;   /* List version of recvreqQ */
 static NCPTL_QUEUE * recvstatQ;   /* List of MPI receive statuses */
-static MPI_Status * recvstatuses;   /* List version of recvstatQ */
+static UNION_Status * recvstatuses;   /* List version of recvstatQ */
 static NCPTL_QUEUE * sendreqQ;   /* List of MPI send requests */
-static MPI_Request * sendrequests;   /* List version of sendreqQ */
+static UNION_Request * sendrequests;   /* List version of sendreqQ */
 static NCPTL_QUEUE * sendstatQ;   /* List of MPI send statuses */
-static MPI_Status * sendstatuses;   /* List version of sendstatQ */
+static UNION_Status * sendstatuses;   /* List version of sendstatQ */
 static NCPTL_SET * communicators;   /* Map from an array of processor flags to an MPI communicator */
 static MPI_Errhandler mpi_error_handler;   /* Handle to handle_MPI_error() */
 static ncptl_int mpi_tag_ub;   /* Upper bound on an MPI tag value */
@@ -382,7 +382,7 @@ static ncptl_int var_maxbytes;   /* Maximum number of bytes to transmit (command
  *************************/
 
 /* Capture MPI errors. */
-static void handle_MPI_error (MPI_Comm *comm, int *errcode, ...)
+static void handle_MPI_error (UNION_Comm *comm, int *errcode, ...)
 {
 va_list args;
 char errstring[MPI_MAX_ERROR_STRING];
@@ -398,7 +398,7 @@ va_end (args);
 }
 
 /* Perform the equivalent of MPI_Comm_rank() for an arbitrary process. */
-static int rank_in_MPI_communicator (MPI_Comm subcomm, int global_rank)
+static int rank_in_MPI_communicator (UNION_Comm subcomm, int global_rank)
 {
   MPI_Group world_group;   /* Group associated with MPI_COMM_WORLD */
   MPI_Group subgroup;      /* Group associate with subcomm */
@@ -424,12 +424,12 @@ return tag;
 
 /* Given an array of task in/out booleans return an MPI
  * communicator that represents the "in" tasks. */
-static MPI_Comm define_MPI_communicator (char *procflags)
+static UNION_Comm define_MPI_communicator (char *procflags)
 {
-MPI_Comm *existing_comm;    /* Previously defined MPI communicator */
-MPI_Comm new_comm;          /* Newly defined MPI communicator */
+UNION_Comm *existing_comm;    /* Previously defined MPI communicator */
+UNION_Comm new_comm;          /* Newly defined MPI communicator */
 
-existing_comm = (MPI_Comm *) ncptl_set_find (communicators, (void *)procflags);
+existing_comm = (UNION_Comm *) ncptl_set_find (communicators, (void *)procflags);
 if (existing_comm)
 return *existing_comm;
 (void) MPI_Comm_split (MPI_COMM_WORLD, (int)procflags[physrank], physrank, &new_comm);
@@ -636,9 +636,9 @@ NULL
 };
 
  /* Variables specific to the c_union backend */
-int num_tasks;   /* int version of var_num_tasks needed by UNION_MPI_Comm_size() */
+int num_tasks;   /* int version of var_num_tasks needed by UNION_UNION_Comm_size() */
 char * procflags;   /* Array of 1s representing an all-task MPI communicator */
-MPI_Comm comm_world = MPI_COMM_WORLD;   /* Copy of MPI_COMM_WORLD that we can take the address of */
+UNION_Comm comm_world = MPI_COMM_WORLD;   /* Copy of MPI_COMM_WORLD that we can take the address of */
 void * attr_val;   /* Pointed to the value of MPI_TAG_UB */
 int attr_flag = 0;   /* true=MPI_TAG_UB was extracted; false=not extracted */
 
@@ -696,11 +696,11 @@ eventqueue = ncptl_queue_init (sizeof (CONC_EVENT));
 touchedqueue = ncptl_queue_init (sizeof (ncptl_int));
 
  /* Perform initializations specific to the c_union backend. */
-sendreqQ = ncptl_queue_init (sizeof (MPI_Request));
-sendstatQ = ncptl_queue_init (sizeof (MPI_Status));
-recvreqQ = ncptl_queue_init (sizeof (MPI_Request));
-recvstatQ = ncptl_queue_init (sizeof (MPI_Status));
-communicators = ncptl_set_init (ESTIMATED_COMMUNICATORS, var_num_tasks*sizeof(char), sizeof(MPI_Comm));
+sendreqQ = ncptl_queue_init (sizeof (UNION_Request));
+sendstatQ = ncptl_queue_init (sizeof (UNION_Status));
+recvreqQ = ncptl_queue_init (sizeof (UNION_Request));
+recvstatQ = ncptl_queue_init (sizeof (UNION_Status));
+communicators = ncptl_set_init (ESTIMATED_COMMUNICATORS, var_num_tasks*sizeof(char), sizeof(UNION_Comm));
 procflags = (char *) ncptl_malloc (var_num_tasks*sizeof(char), 0);
 for (i=0; i<var_num_tasks; i++)
 procflags[i] = 1;
@@ -1031,8 +1031,8 @@ pendingrecvs, pendingrecvs==1LL ? "receive" : "receives");
   * to allocate. */
 eventlist = (CONC_EVENT *) ncptl_queue_contents (eventqueue, 0);
 numevents = ncptl_queue_length (eventqueue);
-sendrequests = (MPI_Request *) ncptl_queue_contents (sendreqQ, 0);
-recvrequests = (MPI_Request *) ncptl_queue_contents (recvreqQ, 0);
+sendrequests = (UNION_Request *) ncptl_queue_contents (sendreqQ, 0);
+recvrequests = (UNION_Request *) ncptl_queue_contents (recvreqQ, 0);
 for (i=0; i<numevents; i++) {
 CONC_EVENT *thisev = &eventlist[i];   /* Cache of the current event */
 switch (thisev->type) {
@@ -1066,7 +1066,7 @@ ncptl_int i;   /* Iterate over events. */
 ncptl_int j;   /* Iterate over repetitions. */
 
  /* Declarations specific to the c_union backend */
-MPI_Status status;   /* Not needed but required by MPI_Recv() */
+UNION_Status status;   /* Not needed but required by MPI_Recv() */
 
  /* Process from event firstev to event lastev (both inclusive). */
 for (j=numreps; j>0; j--)
@@ -1179,10 +1179,10 @@ ncptl_int numevents;   /* Number of entries in eventlist[] */
 conc_initialize (argc, argv);
 eventlist = (CONC_EVENT *) ncptl_queue_contents (eventqueue, 0);
 numevents = ncptl_queue_length (eventqueue);
-sendrequests = (MPI_Request *) ncptl_queue_contents (sendreqQ, 0);
-sendstatuses = (MPI_Status *) ncptl_queue_contents (sendstatQ, 0);
-recvrequests = (MPI_Request *) ncptl_queue_contents (recvreqQ, 0);
-recvstatuses = (MPI_Status *) ncptl_queue_contents (recvstatQ, 0);
+sendrequests = (UNION_Request *) ncptl_queue_contents (sendreqQ, 0);
+sendstatuses = (UNION_Status *) ncptl_queue_contents (sendstatQ, 0);
+recvrequests = (UNION_Request *) ncptl_queue_contents (recvreqQ, 0);
+recvstatuses = (UNION_Status *) ncptl_queue_contents (recvstatQ, 0);
 starttime = ncptl_time();
 
  /* ----- Event-list processing ----- */

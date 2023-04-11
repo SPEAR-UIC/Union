@@ -57,7 +57,7 @@ static int jacobi3d_main(int argc, char **argv) {
   // MPI_Init(&argc, &argv);
   UNION_MPI_Comm_size(MPI_COMM_WORLD, &numPes);
   UNION_MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
-  MPI_Request sreq[6], rreq[6];
+  UNION_Request sreq[6], rreq[6];
 
   int blockDimX, blockDimY, blockDimZ;
   int arrayDimX, arrayDimY, arrayDimZ;
@@ -220,8 +220,8 @@ static int jacobi3d_main(int argc, char **argv) {
     UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD, &sreq[FRONT-1]);
     UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD, &sreq[BACK-1]);
 
-    UNION_MPI_Waitall(6, rreq, MPI_STATUSES_IGNORE);
-    UNION_MPI_Waitall(6, sreq, MPI_STATUSES_IGNORE);
+    UNION_MPI_Waitall(6, rreq, UNION_STATUSES_IGNORE);
+    UNION_MPI_Waitall(6, sreq, UNION_STATUSES_IGNORE);
 
     // for (i=0; i<6; i++) {
     //   UNION_MPI_Wait(&rreq[i],MPI_STATUS_IGNORE);
@@ -315,7 +315,7 @@ extern "C" {
 /* fill in function pointers for this method */
 struct union_conceptual_bench jacobi3d_bench = 
 {
-.program_name = "jacobi3d",
+.program_name = (char *) "jacobi3d",
 .conceptual_main = jacobi3d_main,
 };
 }

@@ -15,9 +15,15 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <ncptl/ncptl.h> 
-#include <mpi.h> 
 
 #define MAX_CONC_ARGV 128
+
+typedef int UNION_Comm;
+typedef int UNION_Datatype;
+typedef int UNION_Request;
+typedef int UNION_Status;
+typedef int UNION_Op;
+#define UNION_STATUSES_IGNORE (UNION_Status *)1
 
 typedef struct union_bench_param union_bench_param;
 
@@ -44,89 +50,89 @@ int union_conc_bench_load(
         int argc, 
         char *argv[]);
 
-void UNION_MPI_Comm_size (MPI_Comm comm, int *size);
-void UNION_MPI_Comm_rank( MPI_Comm comm, int *rank );
+void UNION_MPI_Comm_size (UNION_Comm comm, int *size);
+void UNION_MPI_Comm_rank( UNION_Comm comm, int *rank );
 void UNION_MPI_Finalize();
 void UNION_Compute(long ns);
 void UNION_MPI_Send(const void *buf, 
             int count, 
-            MPI_Datatype datatype, 
+            UNION_Datatype datatype, 
             int dest, 
             int tag,
-            MPI_Comm comm);
+            UNION_Comm comm);
 void UNION_MPI_Recv(void *buf, 
             int count, 
-            MPI_Datatype datatype, 
+            UNION_Datatype datatype, 
             int source, 
             int tag,
-            MPI_Comm comm, 
-            MPI_Status *status);
+            UNION_Comm comm, 
+            UNION_Status *status);
 void UNION_MPI_Sendrecv(const void *sendbuf, 
             int sendcount, 
-            MPI_Datatype sendtype,
+            UNION_Datatype sendtype,
             int dest, 
             int sendtag,
             void *recvbuf, 
             int recvcount, 
-            MPI_Datatype recvtype,
+            UNION_Datatype recvtype,
             int source, 
             int recvtag,
-            MPI_Comm comm, 
-            MPI_Status *status);
-void UNION_MPI_Barrier(MPI_Comm comm);
+            UNION_Comm comm, 
+            UNION_Status *status);
+void UNION_MPI_Barrier(UNION_Comm comm);
 void UNION_MPI_Isend(const void *buf, 
             int count, 
-            MPI_Datatype datatype, 
+            UNION_Datatype datatype, 
             int dest, 
             int tag,
-            MPI_Comm comm, 
-            MPI_Request *request);
+            UNION_Comm comm, 
+            UNION_Request *request);
 void UNION_MPI_Irecv(void *buf, 
             int count, 
-            MPI_Datatype datatype, 
+            UNION_Datatype datatype, 
             int source, 
             int tag,
-            MPI_Comm comm, 
-            MPI_Request *request);
-void UNION_MPI_Wait(MPI_Request *request,
-            MPI_Status *status);
+            UNION_Comm comm, 
+            UNION_Request *request);
+void UNION_MPI_Wait(UNION_Request *request,
+            UNION_Status *status);
 void UNION_MPI_Waitall(int count, 
-            MPI_Request array_of_requests[], 
-            MPI_Status array_of_statuses[]);
+            UNION_Request array_of_requests[], 
+            UNION_Status array_of_statuses[]);
 void UNION_MPI_Reduce(const void *sendbuf, 
             void *recvbuf, 
             int count, 
-            MPI_Datatype datatype,
-            MPI_Op op, 
+            UNION_Datatype datatype,
+            UNION_Op op, 
             int root, 
-            MPI_Comm comm);
+            UNION_Comm comm);
 void UNION_MPI_Allreduce(const void *sendbuf, 
             void *recvbuf, 
             int count, 
-            MPI_Datatype datatype,
-            MPI_Op op, 
-            MPI_Comm comm);
+            UNION_Datatype datatype,
+            UNION_Op op, 
+            UNION_Comm comm);
 void UNION_MPI_Bcast(void *buffer, 
             int count, 
-            MPI_Datatype datatype, 
+            UNION_Datatype datatype, 
             int root, 
-            MPI_Comm comm);
+            UNION_Comm comm);
 void UNION_MPI_Alltoall(const void *sendbuf, 
             int sendcount, 
-            MPI_Datatype sendtype, 
+            UNION_Datatype sendtype, 
             void *recvbuf,
             int recvcount, 
-            MPI_Datatype recvtype, 
-            MPI_Comm comm);
+            UNION_Datatype recvtype, 
+            UNION_Comm comm);
 void UNION_MPI_Alltoallv(const void *sendbuf, 
             const int *sendcounts, 
             const int *sdispls,
-            MPI_Datatype sendtype, 
+            UNION_Datatype sendtype, 
             void *recvbuf, 
             const int *recvcounts,
             const int *rdispls, 
-            MPI_Datatype recvtype, 
-            MPI_Comm comm);
+            UNION_Datatype recvtype, 
+            UNION_Comm comm);
 
 #ifdef __cplusplus
 }
