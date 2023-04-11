@@ -69,10 +69,10 @@ make
 make install
 ```
 
-### Installing CODES (SPEAR-IIT cloned version)
+### Installing CODES (kronos-union branch)
 
 ```bash
-git clone https://github.com/SPEAR-IIT/CODES.git
+git clone https://github.com/codes-org/codes.git
 cd codes
 ./prepare.sh
 mkdir build
