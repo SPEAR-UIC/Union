@@ -55,8 +55,8 @@ static int jacobi3d_main(int argc, char **argv) {
   long compute_time;
 
   // MPI_Init(&argc, &argv);
-  UNION_MPI_Comm_size(MPI_COMM_WORLD, &numPes);
-  UNION_MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+  UNION_MPI_Comm_size(UNION_Comm_World, &numPes);
+  UNION_MPI_Comm_rank(UNION_Comm_World, &myRank);
   UNION_Request sreq[6], rreq[6];
 
   int blockDimX, blockDimY, blockDimZ;
@@ -66,7 +66,7 @@ static int jacobi3d_main(int argc, char **argv) {
   if (argc != 7 && argc != 11) {
     printf("%s [array_size] [block_size] [message_size] [iter] [compute_time]+[no]barrier\n", argv[0]);
     printf("%s [array_size_X] [array_size_Y] [array_size_Z] [block_size_X] [block_size_Y] [block_size_Z] [message_size] [iter] [compute_time]+[no]barrier\n", argv[0]);
-    MPI_Abort(MPI_COMM_WORLD, -1);
+    //MPI_Abort(UNION_Comm_World, -1);
   }
 
   if(argc == 7) {
@@ -100,15 +100,15 @@ static int jacobi3d_main(int argc, char **argv) {
 
   if (arrayDimX < blockDimX || arrayDimX % blockDimX != 0) {
     printf("array_size_X % block_size_X != 0!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
+    //MPI_Abort(UNION_Comm_World, -1);
   }
   if (arrayDimY < blockDimY || arrayDimY % blockDimY != 0) {
     printf("array_size_Y % block_size_Y != 0!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
+    //MPI_Abort(UNION_Comm_World, -1);
   }
   if (arrayDimZ < blockDimZ || arrayDimZ % blockDimZ != 0) {
     printf("array_size_Z % block_size_Z != 0!\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
+    //MPI_Abort(UNION_Comm_World, -1);
   }
 
   struct timespec tim;
@@ -175,7 +175,7 @@ static int jacobi3d_main(int argc, char **argv) {
   // double *back_plane_in     = new double[messageSize];
   // double *front_plane_in    = new double[messageSize];
 
-  UNION_MPI_Barrier(MPI_COMM_WORLD);
+  UNION_MPI_Barrier(UNION_Comm_World);
   // MPI_Pcontrol(1);
   // startTime = MPI_Wtime();
 
@@ -204,21 +204,21 @@ static int jacobi3d_main(int argc, char **argv) {
     //   }
 
     /* Receive my right, left, top, bottom, back and front planes */
-    UNION_MPI_Irecv(NULL, messageSize, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &rreq[RIGHT-1]);
-    UNION_MPI_Irecv(NULL, messageSize, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &rreq[LEFT-1]);
-    UNION_MPI_Irecv(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), TOP, MPI_COMM_WORLD, &rreq[TOP-1]);
-    UNION_MPI_Irecv(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), BOTTOM, MPI_COMM_WORLD, &rreq[BOTTOM-1]);
-    UNION_MPI_Irecv(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), FRONT, MPI_COMM_WORLD, &rreq[FRONT-1]);
-    UNION_MPI_Irecv(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), BACK, MPI_COMM_WORLD, &rreq[BACK-1]);
+    UNION_MPI_Irecv(NULL, messageSize, UNION_Double, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), RIGHT, UNION_Comm_World, &rreq[RIGHT-1]);
+    UNION_MPI_Irecv(NULL, messageSize, UNION_Double, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), LEFT, UNION_Comm_World, &rreq[LEFT-1]);
+    UNION_MPI_Irecv(NULL, messageSize, UNION_Double, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), TOP, UNION_Comm_World, &rreq[TOP-1]);
+    UNION_MPI_Irecv(NULL, messageSize, UNION_Double, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), BOTTOM, UNION_Comm_World, &rreq[BOTTOM-1]);
+    UNION_MPI_Irecv(NULL, messageSize, UNION_Double, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), FRONT, UNION_Comm_World, &rreq[FRONT-1]);
+    UNION_MPI_Irecv(NULL, messageSize, UNION_Double, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), BACK, UNION_Comm_World, &rreq[BACK-1]);
 
 
     /* Send my left, right, bottom, top, front and back planes */
-    UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, MPI_COMM_WORLD, &sreq[RIGHT-1]);
-    UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, MPI_COMM_WORLD, &sreq[LEFT-1]);
-    UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, MPI_COMM_WORLD, &sreq[TOP-1]);
-    UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, MPI_COMM_WORLD, &sreq[BOTTOM-1]);
-    UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, MPI_COMM_WORLD, &sreq[FRONT-1]);
-    UNION_MPI_Isend(NULL, messageSize, MPI_DOUBLE, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, MPI_COMM_WORLD, &sreq[BACK-1]);
+    UNION_MPI_Isend(NULL, messageSize, UNION_Double, calc_pe(wrap_x(myXcoord-1), myYcoord, myZcoord), RIGHT, UNION_Comm_World, &sreq[RIGHT-1]);
+    UNION_MPI_Isend(NULL, messageSize, UNION_Double, calc_pe(wrap_x(myXcoord+1), myYcoord, myZcoord), LEFT, UNION_Comm_World, &sreq[LEFT-1]);
+    UNION_MPI_Isend(NULL, messageSize, UNION_Double, calc_pe(myXcoord, wrap_y(myYcoord-1), myZcoord), TOP, UNION_Comm_World, &sreq[TOP-1]);
+    UNION_MPI_Isend(NULL, messageSize, UNION_Double, calc_pe(myXcoord, wrap_y(myYcoord+1), myZcoord), BOTTOM, UNION_Comm_World, &sreq[BOTTOM-1]);
+    UNION_MPI_Isend(NULL, messageSize, UNION_Double, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord-1)), FRONT, UNION_Comm_World, &sreq[FRONT-1]);
+    UNION_MPI_Isend(NULL, messageSize, UNION_Double, calc_pe(myXcoord, myYcoord, wrap_z(myZcoord+1)), BACK, UNION_Comm_World, &sreq[BACK-1]);
 
     UNION_MPI_Waitall(6, rreq, UNION_STATUSES_IGNORE);
     UNION_MPI_Waitall(6, sreq, UNION_STATUSES_IGNORE);
@@ -295,10 +295,10 @@ static int jacobi3d_main(int argc, char **argv) {
  //    }
 
     // if(myRank == 0) printf("Iteration %d %f\n", iterations, max_error);
-    if(noBarrier == 0) UNION_MPI_Allreduce(&max_error, &error, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+    if(noBarrier == 0) UNION_MPI_Allreduce(&max_error, &error, 1, UNION_Double, UNION_Op_Max, UNION_Comm_World);
   } /* end of while loop */
 
-  UNION_MPI_Barrier(MPI_COMM_WORLD);
+  UNION_MPI_Barrier(UNION_Comm_World);
   // MPI_Pcontrol(0);
 
   if(myRank == 0) {
