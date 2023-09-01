@@ -6,18 +6,18 @@
  * Entire source program
  * ---------------------
  *   # A ping-pong latency test written in coNCePTuaL
- *   
+ *
  *   Require language version "1.5".
- *   
+ *
  *   # Parse the command line.
  *   reps is "Number of repetitions of each message size" and comes from
  *    "--reps" or "-r" with default 1000.
  *   maxbytes is "Maximum number of bytes to transmit" and comes from
  *    "--maxbytes" or "-m" with default 1M.
- *   
+ *
  *   # Ensure that we have a peer with whom to communicate.
  *   Assert that "the latency test requires at least two tasks" with num_tasks>=2.
- *   
+ *
  *   # Perform the benchmark.
  *   For each msgsize in {0}, {1, 2, 4, ..., maxbytes} {
  *     for reps repetitions {
@@ -88,7 +88,7 @@
 /* Enumerate the various mechanisms used to implement MULTICAST statements. */
 typedef enum {
 CONC_MCAST_MPI_BCAST,       /* One to many */
-CONC_MCAST_MPI_ALLTOALL,    /* Many to many, same data to all */ 
+CONC_MCAST_MPI_ALLTOALL,    /* Many to many, same data to all */
 CONC_MCAST_MPI_ALLTOALLV,   /* General many to many */
 CONC_MCAST_MPI_NUM_FUNCS    /* Number of the above */
 } CONC_MCAST_MPI_FUNC;
@@ -665,8 +665,8 @@ ncptl_init (NCPTL_RUN_TIME_VERSION, argv[0]);
 (void) atexit (conc_exit_handler);
 
  /* Initialize the communication routines needed by the c_union backend. */
-(void) MPI_Errhandler_create ((MPI_Handler_function *)handle_MPI_error, &mpi_error_handler);
-(void) MPI_Errhandler_set (MPI_COMM_WORLD, mpi_error_handler);
+//(void) MPI_Errhandler_create ((MPI_Handler_function *)handle_MPI_error, &mpi_error_handler);
+//(void) MPI_Errhandler_set (MPI_COMM_WORLD, mpi_error_handler);
 (void) UNION_MPI_Comm_rank(MPI_COMM_WORLD, &physrank);
 (void) UNION_MPI_Comm_size(MPI_COMM_WORLD, &num_tasks);
 var_num_tasks = (ncptl_int) num_tasks;
@@ -1192,7 +1192,7 @@ conc_process_events (eventlist, 0, numevents-1, 1);
 return conc_finalize();
 }
 /* fill in function pointers for this method */
-struct union_conceptual_bench latency_bench = 
+struct union_conceptual_bench latency_bench =
 {
 .program_name = "latency",
 .conceptual_main = latency_main,
