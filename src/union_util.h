@@ -62,6 +62,10 @@ void UNION_MPI_Comm_size (UNION_Comm comm, int *size);
 void UNION_MPI_Comm_rank( UNION_Comm comm, int *rank );
 void UNION_MPI_Finalize();
 void UNION_Compute(long ns);
+void UNION_IO_OPEN_FILE(int fid);
+void UNION_IO_WRITE(int fid, long size);
+void UNION_IO_READ(int fid, long size);
+void UNION_IO_CLOSE_FILE(int fid);
 void UNION_MPI_Send(const void *buf,
             int count,
             UNION_Datatype datatype,
