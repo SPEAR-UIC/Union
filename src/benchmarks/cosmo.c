@@ -43,6 +43,7 @@ static int cosmo_main(int argc, char *argv[])
         UNION_Compute(interval_nsec);
         nanosleep(&tim, NULL);
         UNION_MPI_Allreduce(NULL, NULL, count, UNION_Int, UNION_Op_Sum, UNION_Comm_World);
+        UNION_Mark_Iteration(i);
     }
 
     // stopTime = MPI_Wtime();
