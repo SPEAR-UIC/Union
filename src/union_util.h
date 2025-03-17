@@ -29,6 +29,7 @@ typedef int UNION_Op;
 
 #define UNION_Comm_World 1
 #define UNION_Op_Max 1
+#define UNION_Op_Sum 2
 #define UNION_Byte 1
 #define UNION_Int 4
 #define UNION_Double 8
