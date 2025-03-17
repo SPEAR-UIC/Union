@@ -10,6 +10,8 @@
 extern struct union_conceptual_bench latency_bench;
 extern struct union_conceptual_bench cosmoflow_bench;
 extern struct union_conceptual_bench jacobi3d_bench;
+extern struct union_conceptual_bench cosmo_bench;
+extern struct union_conceptual_bench checkpoint_bench;
 /* list of available benchmarks end */
 
 static struct union_conceptual_bench const * bench_array_default[] =
@@ -18,6 +20,8 @@ static struct union_conceptual_bench const * bench_array_default[] =
     &latency_bench,
     &cosmoflow_bench,
     &jacobi3d_bench,
+    &cosmo_bench,
+    &checkpoint_bench,
     /* default benchmarks end */
     NULL
 };
