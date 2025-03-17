@@ -3,7 +3,9 @@ include_HEADERS = src/union_util.h
 src_libunion_la_SOURCES = src/union_util.c	\
                         src/benchmarks/conc-latency.c \
                         src/benchmarks/conc-cosmoflow.c \
-			src/benchmarks/jacobi3d.C
+			src/benchmarks/jacobi3d.C \
+                        src/benchmarks/cosmo.c \
+                        src/benchmarks/checkpoint.c
 
 dist_data_DATA = src/benchmarks/conceptual.json
 
