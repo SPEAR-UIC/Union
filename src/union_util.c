@@ -15,8 +15,6 @@ extern struct union_conceptual_bench checkpoint_bench;
 static struct union_conceptual_bench const * bench_array_default[] =
 {
     /* default benchmarks begin */
-    &latency_bench,
-    &cosmoflow_bench,
     &jacobi3d_bench,
     &cosmo_bench,
     &checkpoint_bench,
