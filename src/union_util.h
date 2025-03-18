@@ -147,6 +147,8 @@ void UNION_MPI_Alltoallv(const void *sendbuf,
             UNION_Datatype recvtype,
             UNION_Comm comm);
 
+void UNION_Mark_Iteration(UNION_TAG iter_tag);
+
 inline void UNION_Type_size(UNION_Datatype type, int* size) {
     *size = type;
 }
