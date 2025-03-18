@@ -7,8 +7,6 @@
 #include <union_util.h>
 
 /* list of available benchmarks begin */
-extern struct union_conceptual_bench latency_bench;
-extern struct union_conceptual_bench cosmoflow_bench;
 extern struct union_conceptual_bench jacobi3d_bench;
 extern struct union_conceptual_bench cosmo_bench;
 extern struct union_conceptual_bench checkpoint_bench;
