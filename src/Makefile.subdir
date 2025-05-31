@@ -1,8 +1,6 @@
 include_HEADERS = src/union_util.h
 
 src_libunion_la_SOURCES = src/union_util.c \
-	src/benchmarks/checkpoint.c \
-	src/benchmarks/cosmo.c \
 	src/benchmarks/cosmoflow.c \
 	src/benchmarks/jacobi3d.C \
 	src/benchmarks/latency.c

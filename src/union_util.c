@@ -7,8 +7,6 @@
 #include <union_util.h>
 
 /* list of available benchmarks begin */
-extern struct union_conceptual_bench checkpoint_bench;
-extern struct union_conceptual_bench cosmo_bench;
 extern struct union_conceptual_bench cosmoflow_bench;
 extern struct union_conceptual_bench jacobi3d_bench;
 extern struct union_conceptual_bench latency_bench;
@@ -17,8 +15,6 @@ extern struct union_conceptual_bench latency_bench;
 static struct union_conceptual_bench const * bench_array_default[] =
 {
     /* default benchmarks begin */
-    &checkpoint_bench,
-    &cosmo_bench,
     &cosmoflow_bench,
     &jacobi3d_bench,
     &latency_bench,
