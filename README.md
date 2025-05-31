@@ -49,17 +49,20 @@ cd boost_1_87_0
 ### Installing ROSS
 
 ```bash
-git clone https://github.com/carothersc/ROSS.git 
-mkdir build-ross
-cd build-ross
-cmake -DCMAKE_INSTALL_PREFIX:path=path/to/ross/install -DCMAKE_C_COMPILER=$(which mpicc) -DCMAKE_CXX_COMPILER=$(which mpicxx) ../ROSS
+git clone https://github.com/ross-org/ross --depth=20 --branch=at_gvt_arbitrary_function
+cd ross
+mkdir build
+cd build
+cmake .. -DROSS_BUILD_MODELS=ON -DCMAKE_INSTALL_PREFIX=path/to/ross/install -DCMAKE_C_COMPILER=mpicc -DCMAKE_CXX_COMPILER=mpicxx -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS="-g -Wall"
+make
 make install
 ```
 
 ### Installing Argobots
 
 ```bash
-git clone https://github.com/pmodels/argobots.git
+git clone https://github.com/pmodels/argobots --depth=1
+cd argobots
 ./autogen.sh
 ./configure --prefix=/path/to/argobots/install
 make
@@ -70,7 +73,7 @@ make install
 
 ```bash
 git clone https://github.com/codes-org/SWM-workloads.git
-cd swm
+cd SWM-workloads/swm
 ./prepare.sh
 ./configure --with-boost=/path/to/boost/install --prefix=/path/to/swm/install CC=mpicc CXX=mpicxx
 make
