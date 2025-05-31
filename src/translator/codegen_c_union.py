@@ -81,7 +81,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         # Process any command-line options targeting the backend itself.
         self.send_function = "UNION_MPI_Send"
         self.isend_function = "UNION_MPI_Isend"
-        self.reduce_operation = "MPI_SUM"
+        self.reduce_operation = "UNION_Op_Sum"
         for arg in range(0, len(options)):
             if options[arg] == "--ssend":
                 # Use MPI_Send() unless the --ssend option is given,
@@ -89,18 +89,18 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
                 self.send_function = "UNION_MPI_Ssend"
                 self.isend_function = "UNION_MPI_Issend"
             elif options[arg][:9] == "--reduce=":
-                # Reduce using MPI_SUM unless an alternative is named.
+                # Reduce using UNION_Op_Sum unless an alternative is named.
                 self.reduce_operation = options[arg][9:]
             elif options[arg] == "--help":
                 # Output a help message.
                 self.cmdline_options.extend([
                     ("--ssend",
                      """Use UNION_MPI_Ssend() for point-to-point
-                                  communication instead of MPI_Send()"""),
+                                  communication instead of UNION_MPI_Send()"""),
                     ("--reduce=<string>",
                      """Specify an MPI reduce operator to use for
                                   UNION_MPI_Reduce() and UNION_MPI_Allreduce()
-                                  [default: MPI_SUM]""")])
+                                  [default: UNION_Op_Sum]""")])
                 self.show_help()
                 raise SystemExit, 0
 
@@ -142,40 +142,41 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         self.code_declare_var(type="NCPTL_QUEUE *", name="recvreqQ",
                               comment="List of MPI receive requests",
                               stack=newvars)
-        self.code_declare_var(type="MPI_Request *", name="recvrequests",
+        self.code_declare_var(type="UNION_Request *", name="recvrequests",
                               comment="List version of recvreqQ",
                               stack=newvars)
         self.code_declare_var(type="NCPTL_QUEUE *", name="recvstatQ",
                               comment="List of MPI receive statuses",
                               stack=newvars)
-        self.code_declare_var("MPI_Status *", name="recvstatuses",
+        self.code_declare_var("UNION_Status *", name="recvstatuses",
                               comment="List version of recvstatQ",
                               stack=newvars)
         self.code_declare_var(type="NCPTL_QUEUE *", name="sendreqQ",
                               comment="List of MPI send requests",
                               stack=newvars)
-        self.code_declare_var(type="MPI_Request *", name="sendrequests",
+        self.code_declare_var(type="UNION_Request *", name="sendrequests",
                               comment="List version of sendreqQ",
                               stack=newvars)
         self.code_declare_var(type="NCPTL_QUEUE *", name="sendstatQ",
                               comment="List of MPI send statuses",
                               stack=newvars)
-        self.code_declare_var(type="MPI_Status *", name="sendstatuses",
+        self.code_declare_var(type="UNION_Status *", name="sendstatuses",
                               comment="List version of sendstatQ",
                               stack=newvars)
         self.code_declare_var(type="NCPTL_SET *", name="communicators",
                               comment="Map from an array of processor flags to an MPI communicator",
                               stack=newvars)
-        self.code_declare_var(type="MPI_Errhandler", name="mpi_error_handler",
-                              comment="Handle to handle_MPI_error()",
-                              stack=newvars)
-        self.code_declare_var(name="mpi_tag_ub",
-                              comment="Upper bound on an MPI tag value",
+        # self.code_declare_var(type="MPI_Errhandler", name="mpi_error_handler",
+        #                       comment="Handle to handle_MPI_error()",
+        #                       stack=newvars)
+        self.code_declare_var(name="union_tag_ub",
+                              comment="Upper bound on an UNION tag value",
                               stack=newvars)
         self.code_declare_var(type="ncptl_int", name="conc_mcast_tallies",
                               arraysize="CONC_MCAST_MPI_NUM_FUNCS", rhs="{0}",
                               comment="Tallies of (static) multicast implementation functions",
                               stack=newvars)
+
 
         # Make all declarations static.
         static_newvars = []
@@ -197,14 +198,14 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         self.code_declare_var(type="char *", name="procflags",
                               comment="Array of 1s representing an all-task MPI communicator",
                               stack=newvars)
-        self.code_declare_var(type="MPI_Comm", name="comm_world", rhs="MPI_COMM_WORLD",
-                              comment="Copy of MPI_COMM_WORLD that we can take the address of",
+        self.code_declare_var(type="UNION_Comm", name="comm_world", rhs="UNION_Comm_World",
+                              comment="Copy of UNION_Comm_World that we can take the address of",
                               stack=newvars)
         self.code_declare_var(type="void *", name="attr_val",
-                              comment="Pointed to the value of MPI_TAG_UB",
+                              comment="Pointed to the value of UNION_TAG_UB",
                               stack=newvars)
         self.code_declare_var(type="int", name="attr_flag", rhs="0",
-                              comment="true=MPI_TAG_UB was extracted; false=not extracted",
+                              comment="true=UNION_TAG_UB was extracted; false=not extracted",
                               stack=newvars)
         if self.program_uses_log_file:
             self.code_declare_var(type="char", name="log_key_str", arraysize="128",
@@ -216,76 +217,79 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         "Define extra initialization to be performed before ncptl_init()."
         return [
             " /* Initialize MPI. */",
-            "//(void) MPI_Init(&argc, &argv);",
+            # "//(void) MPI_Init(&argc, &argv);",
             "mpi_is_running = 1;"]
 
     def code_define_functions_INIT_COMM_1(self, localvars):
         "Define extra initialization to be performed after ncptl_init()."
         return [
-            "(void) MPI_Errhandler_create ((MPI_Handler_function *)handle_MPI_error, &mpi_error_handler);",
-            "(void) MPI_Errhandler_set (MPI_COMM_WORLD, mpi_error_handler);",
-            "(void) UNION_MPI_Comm_rank(MPI_COMM_WORLD, &physrank);",
-            "(void) UNION_MPI_Comm_size(MPI_COMM_WORLD, &num_tasks);",
+            # "(void) MPI_Errhandler_create ((MPI_Handler_function *)handle_MPI_error, &mpi_error_handler);",
+            # "(void) MPI_Errhandler_set (UNION_Comm_World, mpi_error_handler);",
+            "(void) UNION_MPI_Comm_rank(UNION_Comm_World, &physrank);",
+            "(void) UNION_MPI_Comm_size(UNION_Comm_World, &num_tasks);",
             "var_num_tasks = (ncptl_int) num_tasks;",
-            "(void) MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_TAG_UB, &attr_val, &attr_flag);",
-            "mpi_tag_ub = (ncptl_int) (attr_flag ? *(int *)attr_val : 32767);"]
+            # "(void) MPI_Comm_get_attr(UNION_Comm_World, UNION_TAG_UB, &attr_val, &attr_flag);",
+            "union_tag_ub = (ncptl_int) (attr_flag ? *(int *)attr_val : 32767);"]
 
     def code_define_functions_PRE(self, localvars):
         "Define some additional functions we need at run time."
         return [
-            "/* Capture MPI errors. */",
-            "static void handle_MPI_error (MPI_Comm *comm, int *errcode, ...)",
+            # "/* Capture MPI errors. */",
+            # "static void handle_MPI_error (MPI_Comm *comm, int *errcode, ...)",
+            # "{",
+            # "va_list args;",
+            # "char errstring[MPI_MAX_ERROR_STRING];",
+            # "int errstrlen;",
+            # "",
+            # "va_start (args, errcode);",
+            # "if (MPI_Error_string (*errcode, errstring, &errstrlen) == MPI_SUCCESS)",
+            # 'fprintf(stderr, "MPI run-time error: %s", errstring);',
+            # "else",
+            # 'fprintf(stderr, "MPI aborted with unrecognized error code %d", *errcode);',
+            # "conc_dummy_var.vp = (void *) comm;   /* Prevent the compiler from complaining that comm is unused. */",
+            # "va_end (args);",
+            # "}",
+            # "",
+            "/* Perform the equivalent of MPI_Comm_rank() for an arbitrary process. Not support subgroups */",
+            "static int rank_in_MPI_communicator (UNION_Comm subcomm, int global_rank)",
             "{",
-            "va_list args;",
-            "char errstring[MPI_MAX_ERROR_STRING];",
-            "int errstrlen;",
-            "",
-            "va_start (args, errcode);",
-            "if (MPI_Error_string (*errcode, errstring, &errstrlen) == MPI_SUCCESS)",
-            'fprintf(stderr, "MPI run-time error: %s", errstring);',
-            "else",
-            'fprintf(stderr, "MPI aborted with unrecognized error code %d", *errcode);',
-            "conc_dummy_var.vp = (void *) comm;   /* Prevent the compiler from complaining that comm is unused. */",
-            "va_end (args);",
+            # "  UNION_Group world_group;   /* Group associated with UNION_Comm_World */",
+            # "  UNION_Group subgroup;      /* Group associate with subcomm */",
+            # "  int subrank;             /* global_rank's rank within subcomm */",
+            # "",
+            # "  MPI_Comm_group (UNION_Comm_World, &world_group);",
+            # "  MPI_Comm_group (subcomm, &subgroup);",
+            # "  MPI_Group_translate_ranks (world_group, 1, &global_rank, subgroup, &subrank);",
+            # "  return subrank;",
+            "  return global_rank;",
             "}",
             "",
-            "/* Perform the equivalent of MPI_Comm_rank() for an arbitrary process. */",
-            "static int rank_in_MPI_communicator (MPI_Comm subcomm, int global_rank)",
-            "{",
-            "  MPI_Group world_group;   /* Group associated with MPI_COMM_WORLD */",
-            "  MPI_Group subgroup;      /* Group associate with subcomm */",
-            "  int subrank;             /* global_rank's rank within subcomm */",
-            "",
-            "  MPI_Comm_group (MPI_COMM_WORLD, &world_group);",
-            "  MPI_Comm_group (subcomm, &subgroup);",
-            "  MPI_Group_translate_ranks (world_group, 1, &global_rank, subgroup, &subrank);",
-            "  return subrank;",
-            "}",
-            "",
-            "/* Map an arbitrary tag to within MPI's valid range of [0, mpi_tag_ub]. */",
+            "/* Map an arbitrary tag to within MPI's valid range of [0, union_tag_ub]. */",
             "static ncptl_int map_tag_into_MPI_range (ncptl_int tag)",
             "{",
             "if (tag == NCPTL_INT_MIN)",
             " /* Avoid taking the absolute value of NCPTL_INT_MIN. */",
             "tag = 555666773%s;   /* Arbitrary value */" % self.ncptl_int_suffix,
             "tag = ncptl_func_abs (tag);   /* Only nonnegatives values are allowed. */",
-            "if (mpi_tag_ub < NCPTL_INT_MAX)",
-            "tag %= mpi_tag_ub + 1;",
+            "if (union_tag_ub < NCPTL_INT_MAX)",
+            "tag %= union_tag_ub + 1;",
             "return tag;",
             "}",
             "",
             "/* Given an array of task in/out booleans return an MPI",
             ' * communicator that represents the "in" tasks. */',
-            "static MPI_Comm define_MPI_communicator (char *procflags)",
+            "static UNION_Comm define_MPI_communicator (char *procflags)",
             "{",
-            "MPI_Comm *existing_comm;    /* Previously defined MPI communicator */",
-            "MPI_Comm new_comm;          /* Newly defined MPI communicator */",
+            "UNION_Comm *existing_comm;    /* Previously defined MPI communicator */",
+            "UNION_Comm new_comm;          /* Newly defined MPI communicator */",
             "",
-            "existing_comm = (MPI_Comm *) ncptl_set_find (communicators, (void *)procflags);",
+            "existing_comm = (UNION_Comm *) ncptl_set_find (communicators, (void *)procflags);",
             "if (existing_comm)",
             "return *existing_comm;",
-            "(void) MPI_Comm_split (MPI_COMM_WORLD, (int)procflags[physrank], physrank, &new_comm);",
-            "(void) MPI_Errhandler_set (new_comm, mpi_error_handler);",
+            "/* Do NOT split communicator; just assign existing communicator directly */",
+            "new_comm = UNION_Comm_World;",          
+            # "(void) MPI_Comm_split (UNION_Comm_World, (int)procflags[physrank], physrank, &new_comm);",
+            # "(void) MPI_Errhandler_set (new_comm, mpi_error_handler);",
             "ncptl_set_insert (communicators, (void *)procflags, (void *)&new_comm);",
             "return define_MPI_communicator (procflags);",
             "}"]
@@ -306,18 +310,18 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
                     'ncptl_log_add_comment ("MPI send routines", "%s() and %s()");' %
                     (self.send_function, self.isend_function),
                     'ncptl_log_add_comment ("MPI reduction operation", REDUCE_OPERATION_NAME);',
-                    'sprintf (log_key_str, "[0, %" NICS "]", mpi_tag_ub);',
+                    'sprintf (log_key_str, "[0, %" NICS "]", union_tag_ub);',
                     'ncptl_log_add_comment ("MPI tag range", log_key_str);'])
         return extraloglines
 
     def code_def_init_misc_EXTRA(self, localvars):
         "Initialize everything else that needs to be initialized."
         return [
-            "sendreqQ = ncptl_queue_init (sizeof (MPI_Request));",
-            "sendstatQ = ncptl_queue_init (sizeof (MPI_Status));",
-            "recvreqQ = ncptl_queue_init (sizeof (MPI_Request));",
-            "recvstatQ = ncptl_queue_init (sizeof (MPI_Status));",
-            "communicators = ncptl_set_init (ESTIMATED_COMMUNICATORS, var_num_tasks*sizeof(char), sizeof(MPI_Comm));",
+            "sendreqQ = ncptl_queue_init (sizeof (UNION_Request));",
+            "sendstatQ = ncptl_queue_init (sizeof (UNION_Status));",
+            "recvreqQ = ncptl_queue_init (sizeof (UNION_Request));",
+            "recvstatQ = ncptl_queue_init (sizeof (UNION_Status));",
+            "communicators = ncptl_set_init (ESTIMATED_COMMUNICATORS, var_num_tasks*sizeof(char), sizeof(UNION_Comm));",
             "procflags = (char *) ncptl_malloc (var_num_tasks*sizeof(char), 0);",
             "for (i=0; i<var_num_tasks; i++)",
             "procflags[i] = 1;",
@@ -327,10 +331,10 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
     def code_define_main_POST_INIT(self, localvars):
         "Finalize the various asynchronous-data queues into lists."
         return [
-            "sendrequests = (MPI_Request *) ncptl_queue_contents (sendreqQ, 0);",
-            "sendstatuses = (MPI_Status *) ncptl_queue_contents (sendstatQ, 0);",
-            "recvrequests = (MPI_Request *) ncptl_queue_contents (recvreqQ, 0);",
-            "recvstatuses = (MPI_Status *) ncptl_queue_contents (recvstatQ, 0);"]
+            "sendrequests = (UNION_Request *) ncptl_queue_contents (sendreqQ, 0);",
+            "sendstatuses = (UNION_Status *) ncptl_queue_contents (sendstatQ, 0);",
+            "recvrequests = (UNION_Request *) ncptl_queue_contents (recvreqQ, 0);",
+            "recvstatuses = (UNION_Status *) ncptl_queue_contents (recvstatQ, 0);"]
 
     def code_def_init_reseed_BCAST(self, localvars):
         "Broadcast a random-number seed to all tasks."
@@ -341,7 +345,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
                               comment="Version of random_seed with int type",
                               stack=bcastcode)
         self.pushmany([
-            "(void) UNION_MPI_Bcast ((void *)&rndseed_int, 1, MPI_INT, 0, MPI_COMM_WORLD);",
+            "(void) UNION_MPI_Bcast ((void *)&rndseed_int, 1, UNION_Int, 0, UNION_Comm_World);",
             "random_seed = (ncptl_int) rndseed_int;",
             "}"],
                       stack=bcastcode)
@@ -349,12 +353,11 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
 
     def code_def_init_uuid_BCAST(self, locals):
         "Broadcast logfile_uuid to all tasks."
-        return ["(void) UNION_MPI_Bcast ((void *)logfile_uuid, 37, MPI_CHAR, 0, MPI_COMM_WORLD);"]
+        return ["(void) UNION_MPI_Bcast ((void *)logfile_uuid, 37, UNION_Char, 0, UNION_Comm_World);"]
 
     def code_def_mark_used_POST(self, locals):
         "Indicate that rank_in_MPI_communicator() is not an unused function."
-        return ["rank_in_MPI_communicator (MPI_COMM_WORLD, 0);"]
-
+        return ["rank_in_MPI_communicator (UNION_Comm_World, 0);"]
 
     # ------------ #
     # Finalization #
@@ -398,7 +401,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
             "mpiresult = 0;",
             "UNION_MPI_Finalize();",
             "mpi_is_running = 0;",
-            "exitcode = mpiresult!=MPI_SUCCESS;"]
+            "exitcode = mpiresult;"]
 
     def code_def_exit_handler_BODY(self, localvars):
         """
@@ -407,7 +410,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         """
         return [
             "if (mpi_is_running)",
-            "MPI_Abort (MPI_COMM_WORLD, 1);"]
+            "MPI_Abort (UNION_Comm_World, 1);"]
 
 
     # ---------------------------- #
@@ -417,7 +420,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
     def code_declare_datatypes_SEND_STATE(self, localvars):
         "Declare fields in the CONC_SEND_EVENT structure for send events."
         newfields = []
-        self.code_declare_var(type="MPI_Request *", name="handle",
+        self.code_declare_var(type="UNION_Request *", name="handle",
                               comment="MPI handle representing an asynchronous send",
                               stack=newfields)
         return newfields
@@ -425,7 +428,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
     def code_declare_datatypes_RECV_STATE(self, localvars):
         "Declare fields in the CONC_RECV_EVENT structure for receive events."
         newfields = []
-        self.code_declare_var(type="MPI_Request *", name="handle",
+        self.code_declare_var(type="UNION_Request *", name="handle",
                               comment="MPI handle representing an asynchronous receive",
                               stack=newfields)
         return newfields
@@ -433,8 +436,8 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
     def code_def_init_msg_mem_PRE(self, localvars):
         "Flatten sendreqQ and recvreqQ into lists for use by code_def_init_msg_mem_EACH_TAG."
         return [
-            "sendrequests = (MPI_Request *) ncptl_queue_contents (sendreqQ, 0);",
-            "recvrequests = (MPI_Request *) ncptl_queue_contents (recvreqQ, 0);"]
+            "sendrequests = (UNION_Request *) ncptl_queue_contents (sendreqQ, 0);",
+            "recvrequests = (UNION_Request *) ncptl_queue_contents (recvreqQ, 0);"]
 
     def code_def_init_msg_mem_EACH_TAG(self, localvars):
         "Store pointers into sendrequests and recvrequests."
@@ -491,7 +494,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         "Declare a status variable for MPI_Recv()."
         newdecls = []
         if self.events_used.has_key("EV_RECV"):
-            self.code_declare_var(type="MPI_Status", name="status",
+            self.code_declare_var(type="UNION_Status", name="status",
                                   comment="Not needed but required by MPI_Recv()",
                                   stack=newdecls)
         return newdecls
@@ -500,32 +503,32 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         "Send a message down a given channel (blocking)."
         return [
             "(void) %s (NULL," % self.send_function,
-            "(int)thisev->s.send.size, MPI_BYTE,",
-            "(int)thisev->s.send.dest, (int)thisev->s.send.tag, MPI_COMM_WORLD);"]
+            "(int)thisev->s.send.size, UNION_Byte,",
+            "(int)thisev->s.send.dest, (int)thisev->s.send.tag, UNION_Comm_World);"]
 
     def code_def_procev_recv_BODY(self, localvars):
         "Receive a message from a given channel (blocking)."
         return [
             "(void) UNION_MPI_Recv (NULL,",
-            "(int)thisev->s.recv.size, MPI_BYTE,",
+            "(int)thisev->s.recv.size, UNION_Byte,",
             "(int)thisev->s.recv.source, (int)thisev->s.recv.tag,",
-            "MPI_COMM_WORLD, &status);"]
+            "UNION_Comm_World, &status);"]
 
     def code_def_procev_asend_BODY(self, localvars):
         "Perform an asynchronous send."
         return [
             "(void) %s (NULL," % self.isend_function,
-            "(int)thisev->s.send.size, MPI_BYTE,",
+            "(int)thisev->s.send.size, UNION_Byte,",
             "(int)thisev->s.send.dest, (int)thisev->s.send.tag,",
-            "MPI_COMM_WORLD, thisev->s.send.handle);"]
+            "UNION_Comm_World, thisev->s.send.handle);"]
 
     def code_def_procev_arecv_BODY(self, localvars):
         "Perform an asynchronous receive."
         return [
             "(void) UNION_MPI_Irecv (NULL,",
-            "(int)thisev->s.recv.size, MPI_BYTE,",
+            "(int)thisev->s.recv.size, UNION_Byte,",
             "(int)thisev->s.recv.source, (int)thisev->s.recv.tag,",
-            "MPI_COMM_WORLD, thisev->s.recv.handle);"]
+            "UNION_Comm_World, thisev->s.recv.handle);"]
 
     def code_def_procev_wait_BODY_SENDS(self, localvars):
         "Retry all of the sends that blocked."
@@ -545,7 +548,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
     def code_declare_datatypes_SYNC_STATE(self, localvars):
         "Declare fields in the CONC_SYNC_EVENT structure for synchronization events."
         newfields = []
-        self.code_declare_var(type="MPI_Comm", name="communicator",
+        self.code_declare_var(type="UNION_Comm", name="communicator",
                               comment="Set of tasks to synchronize",
                               stack=newfields)
         return newfields
@@ -563,7 +566,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
                 self.code_declare_var(name=srenameto, rhs=srenamefrom, stack=mcastcode)
 
         # Declare a communicator representing source_task.
-        base_comm = "MPI_COMM_WORLD"
+        base_comm = "UNION_Comm_World"
         if source_task[0]=="task_all" or source_task[0]=="all_others":
             return base_comm
         elif source_task[0] in ["task_restricted", "task_expr"]:
@@ -577,7 +580,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
             self.code_declare_var(type="char *", name="procflags", rhs="NULL",
                                   comment="Flags indicating whether each task is in or out",
                                   stack=stack)
-            self.code_declare_var(type="MPI_Comm", name="subcomm",
+            self.code_declare_var(type="UNION_Comm", name="subcomm",
                                   comment="MPI subcommunicator to use",
                                   stack=stack)
             if source_task[0] == "task_expr":
@@ -618,17 +621,17 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
 
     def n_for_count_SYNC_ALL(self, localvars):
         "Prepare to synchronize all of the tasks in the job."
-        return ["thisev_sync->s.sync.communicator = MPI_COMM_WORLD;"]
+        return ["thisev_sync->s.sync.communicator = UNION_Comm_World;"]
 
     def code_synchronize_all_BODY(self, localvars):
         "Immediately synchronize all of the tasks in the job."
-        return ["(void) UNION_MPI_Barrier (MPI_COMM_WORLD);"]
+        return ["(void) UNION_MPI_Barrier (UNION_Comm_World);"]
 
     def code_def_procev_etime_REDUCE_MIN(self, localvars):
         "Find the global minimum of the elapsedtime variable."
         return [
             "(void) UNION_MPI_Allreduce (&elapsedtime, &minelapsedtime,",
-            "1, MPI_LONG_LONG_INT, MPI_MIN, MPI_COMM_WORLD);"]
+            "1, UNION_Double, UNION_Op_Min, UNION_Comm_World);"]
 
     def code_declare_datatypes_PRE(self, localvars):
         "Declare extra datatypes needed by the C+MPI backend."
@@ -652,7 +655,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         self.code_declare_var(type="void *", name="buffer2",
                               comment="Pointer to receive-message memory in the many-to-many case",
                               stack=newfields)
-        self.code_declare_var(type="MPI_Comm", name="communicator",
+        self.code_declare_var(type="UNION_Comm", name="communicator",
                               comment="Set of tasks to multicast to/from",
                               stack=newfields)
         self.code_declare_var(type="int", name="root",
@@ -743,7 +746,7 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         self.code_declare_var(type="CONC_MCAST_MPI_FUNC", name="mpi_func",
                               comment="The MPI function that will implement the multicast",
                               stack=mcastcode)
-        self.communicator = self.code_declare_var(type="MPI_Comm", name="subcomm",
+        self.communicator = self.code_declare_var(type="UNION_Comm", name="subcomm",
                                                   comment="MPI subcommunicator to use",
                                                   stack=mcastcode)
 
@@ -1053,18 +1056,18 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
             "switch (%s.mpi_func) {" % struct,
             "case CONC_MCAST_MPI_BCAST:",
             " /* One to many */",
-            "(void) UNION_MPI_Bcast (NULL, %s.size, MPI_BYTE," % struct,
+            "(void) UNION_MPI_Bcast (NULL, %s.size, UNION_Byte," % struct,
             "%s.root, %s.communicator);" % (struct, struct),
             "break;",
             "case CONC_MCAST_MPI_ALLTOALL:",
             " /* Many to many, same to each */",
-            "(void) UNION_MPI_Alltoall (NULL, %s.sndvol[0], MPI_BYTE," % struct,
-            "NULL, %s.rcvvol[0], MPI_BYTE, %s.communicator);" % (struct, struct),
+            "(void) UNION_MPI_Alltoall (NULL, %s.sndvol[0], UNION_Byte," % struct,
+            "NULL, %s.rcvvol[0], UNION_Byte, %s.communicator);" % (struct, struct),
             "break;",
             "case CONC_MCAST_MPI_ALLTOALLV:",
             " /* Many to many, different to each */",
-            "(void) UNION_MPI_Alltoallv (NULL, %s.sndvol, %s.snddisp, MPI_BYTE," % (struct, struct),
-            "NULL, %s.rcvvol, %s.rcvdisp, MPI_BYTE, %s.communicator);" % (struct, struct, struct),
+            "(void) UNION_MPI_Alltoallv (NULL, %s.sndvol, %s.snddisp, UNION_Byte," % (struct, struct),
+            "NULL, %s.rcvvol, %s.rcvdisp, UNION_Byte, %s.communicator);" % (struct, struct, struct),
             "break;",
             "default:",
             " /* We should never get here. */",
@@ -1078,13 +1081,13 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         self.code_declare_var(type="void *", name="altbuffer",
                               comment="Pointer to additional message memory",
                               stack=newfields)
-        self.code_declare_var(type="MPI_Comm", name="sendcomm",
+        self.code_declare_var(type="UNION_Comm", name="sendcomm",
                               comment="Set of tasks to reduce from",
                               stack=newfields)
-        self.code_declare_var(type="MPI_Comm", name="recvcomm",
+        self.code_declare_var(type="UNION_Comm", name="recvcomm",
                               comment="Set of tasks to reduce to",
                               stack=newfields)
-        self.code_declare_var(type="MPI_Datatype", name="datatype",
+        self.code_declare_var(type="UNION_Datatype", name="datatype",
                               comment="MPI datatype to reduce",
                               stack=newfields)
         self.code_declare_var(type="int", name="reducetype",
@@ -1113,10 +1116,10 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
                                   rhs="-1%s" % self.ncptl_int_suffix,
                                   comment="Task ID of the first task that's both a sender and a receiver",
                                   stack=reducecode)
-        self.code_declare_var(type="MPI_Comm", name="sendcomm",
+        self.code_declare_var(type="UNION_Comm", name="sendcomm",
                               comment="Set of tasks to reduce from",
                               stack=reducecode)
-        self.code_declare_var(type="MPI_Comm", name="recvcomm",
+        self.code_declare_var(type="UNION_Comm", name="recvcomm",
                               comment="Set of tasks to reduce to",
                               stack=reducecode)
         return reducecode
@@ -1249,11 +1252,11 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
         self.pushmany([
             "switch (%s.itemsize) {" % struct,
             "case 4%s:" % self.ncptl_int_suffix,
-            "%s.datatype = MPI_INT;" % struct,
+            "%s.datatype = UNION_Int;" % struct,
             "break;",
             "",
             "case 8%s:" % self.ncptl_int_suffix,
-            "%s.datatype = MPI_DOUBLE;" % struct,
+            "%s.datatype = UNION_Double;" % struct,
             "break;",
             "",
             "default:",
@@ -1911,7 +1914,9 @@ class NCPTL_CodeGen(codegen_c_generic.NCPTL_CodeGen):
     def code_define_main(self, node):
         "Declare a main() function for the generated code."
 
-        progname = self.filesource.split(".")[0]
+        filename = self.filesource.split("/")[-1]
+        progname = ".".join(filename.split(".")[:-1])
+
 
         # Output a section comment up to the opening curly brace.
         self.pushmany([

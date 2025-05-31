@@ -7,9 +7,6 @@ import re
 import string
 import random
 
-# the conceptual-1.5.1 dir
-#sys.path.append('/Users/xin/macworkspace/conceptual-1.5.1')
-
 
 def usage(exitcode=0):
     "Provide a usage message."
@@ -32,7 +29,7 @@ if __name__ == "__main__":
     # Set default values for our command-line parameters.
     outfilename = "-"
     progname = ""
-    backend = None
+    backend = "c_union"
     entirefile = None
     backend_options = []
     filter_list = []

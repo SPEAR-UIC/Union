@@ -18,9 +18,9 @@ EXTRA_DIST += \
 			   prepare.sh 
 
 AM_CPPFLAGS = -I$(top_srcdir)/src \
-    $(BOOST_CPPFLAGS) ${CONCEPTUAL_CFLAGS}
+    ${CONCEPTUAL_CFLAGS}
 
-AM_LDFLAGS = $(BOOST_LDFLAGS) 
+AM_LDFLAGS = 
 
 AM_CFLAGS = 
 
@@ -37,5 +37,22 @@ pkgconfig_DATA = maint/union.pc
 
 include Make.rules
 
+# Generate union_util.c and Makefile.subdir before compiling
+src/generated.stamp:
+	$(AM_V_GEN) $(PYTHON) $(top_srcdir)/src/translator/gen_benchmark.py \
+		--conceptual-dir=$(CONCEPTUAL_SRC_DIR) \
+		--union-srcdir=$(top_srcdir)/src && \
+	touch $@
+
+# Declare the outputs
+BUILT_SOURCES += \
+	src/generated.stamp \
+	src/union_util.c \
+	src/Makefile.subdir
+
+# Rebuild if Makefile.subdir changes
+$(srcdir)/src/Makefile.subdir: src/generated.stamp
+
 include $(top_srcdir)/src/Makefile.subdir
 
+PYTHON = @PYTHON@

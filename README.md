@@ -16,27 +16,35 @@ make
 make install
 ```
 
-### Installing Boost-Python (currently mandatory, we may remove this soon)
-
-Download boost at http://www.boost.org/users/download/ (version 1.68 or greater)
-
-```bash
-tar xvf boost_1_68_0.tar.gz
-cd boost_1_68_0 
-./bootstrap.sh --prefix=/path/to/boost/install  --with-libraries=python
-./b2 install
-```
-
 ### Installing Union    
 ```bash
 cd union
 ./prepare.sh
-./configure --with-boost=/path/to/boost/install --with-conceptual=/path/to/conceptual/install --prefix=/path/to/union/install CC=mpicc CXX=mpicxx
+./configure --with-conceptual=/path/to/conceptual/install --with-conceptual-src=/path/to/conceptual --prefix=/path/to/union/install CC=mpicc CXX=mpicxx
 make
 make install
 ```
 
-# Workload Simulation with CODES
+#### Build Process
+
+During the build process (`make`), all `.ncptl` benchmark files located in the `translator/` directory are automatically translated into `.c` files using the `translate.py` script.
+
+These translated benchmark files are then compiled and linked into the Union library.
+
+You do not need to manually translate or include the benchmarks, as this process is automatically handled during the build.
+
+
+## CODES Installation
+
+### Installing Boost-Python
+
+```bash
+curl -L https://archives.boost.io/release/1.87.0/source/boost_1_87_0.tar.gz -o boost_1_87_0.tar.gz
+tar xvf boost_1_87_0.tar.gz
+cd boost_1_87_0 
+./bootstrap.sh --prefix=/path/to/boost/install  --with-libraries=python
+./b2 install
+```
 
 ### Installing ROSS
 
@@ -72,7 +80,7 @@ make install
 ### Installing CODES (kronos-union branch)
 
 ```bash
-git clone https://github.com/codes-org/codes.git
+git clone https://github.com/codes-org/codes --branch=kronos-union
 cd codes
 ./prepare.sh
 mkdir build
@@ -82,13 +90,28 @@ make
 make install
 ```
 
-### Run Test Simulations
-The test directory includes all necessary configuration files to run the test simulation.
+
+# Run Test Simulations with CODES
+
+The `test` directory contains all the necessary configuration files to run the test simulation.
+
+All benchmarks located in `union/src/benchmarks/` are compatible with the CODES online framework and can be simulated through it.
+
+To simulate a specific benchmark, set the `--workload_name` parameter using the format `conceptual-[benchmark_name]`.
+
+In `/path/to/union/install/share`, you can modify the `conceptual.json` file to configure parameters for the benchmarks.
+
+### Running the simulation in sequential mode
 
 ```bash
 cd union/test/
 /path/to/codes/install/bin/model-net-mpi-replay --sync=1 --workload_type=conc-online --lp-io-use-suffix=1 --workload_name=conceptual-jacobi3d --num_net_traces=64 --alloc_file=node_alloc.conf  --lp-io-dir=outputdir -- df1d-72-adp.conf 
 ```
 
+### Running the simulation in optimistic mode
 
+```bash
+cd union/test/
+mpirun -np 2 /path/to/codes/install/bin/model-net-mpi-replay --sync=1 --workload_type=conc-online --lp-io-use-suffix=1 --workload_name=conceptual-jacobi3d --num_net_traces=64 --alloc_file=node_alloc.conf  --lp-io-dir=outputdir -- df1d-72-adp.conf 
+```
 

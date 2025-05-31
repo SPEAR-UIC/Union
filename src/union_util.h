@@ -21,6 +21,7 @@ extern "C" {
 typedef int UNION_TAG;
 typedef int UNION_Comm;
 typedef int UNION_Comm_World;
+typedef int UNION_Group;
 typedef int UNION_Datatype;
 typedef int UNION_Request;
 typedef int UNION_Status;
@@ -29,9 +30,14 @@ typedef int UNION_Op;
 
 #define UNION_Comm_World 1
 #define UNION_Op_Max 1
+#define UNION_Op_Min 2
+#define UNION_Op_Sum 3
 #define UNION_Byte 1
+#define UNION_Char 1
 #define UNION_Int 4
 #define UNION_Double 8
+#define UNION_TAG_UB 0x64400001
+
 
 typedef struct union_bench_param union_bench_param;
 
@@ -62,6 +68,10 @@ void UNION_MPI_Comm_size (UNION_Comm comm, int *size);
 void UNION_MPI_Comm_rank( UNION_Comm comm, int *rank );
 void UNION_MPI_Finalize();
 void UNION_Compute(long ns);
+void UNION_IO_OPEN_FILE(int fid);
+void UNION_IO_WRITE(int fid, long size);
+void UNION_IO_READ(int fid, long size);
+void UNION_IO_CLOSE_FILE(int fid);
 void UNION_MPI_Send(const void *buf,
             int count,
             UNION_Datatype datatype,
@@ -141,6 +151,8 @@ void UNION_MPI_Alltoallv(const void *sendbuf,
             const int *rdispls,
             UNION_Datatype recvtype,
             UNION_Comm comm);
+
+void UNION_Mark_Iteration(UNION_TAG iter_tag);
 
 inline void UNION_Type_size(UNION_Datatype type, int* size) {
     *size = type;
