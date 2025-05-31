@@ -21,6 +21,7 @@ extern "C" {
 typedef int UNION_TAG;
 typedef int UNION_Comm;
 typedef int UNION_Comm_World;
+typedef int UNION_Group;
 typedef int UNION_Datatype;
 typedef int UNION_Request;
 typedef int UNION_Status;
@@ -29,10 +30,14 @@ typedef int UNION_Op;
 
 #define UNION_Comm_World 1
 #define UNION_Op_Max 1
-#define UNION_Op_Sum 2
+#define UNION_Op_Min 2
+#define UNION_Op_Sum 3
 #define UNION_Byte 1
+#define UNION_Char 1
 #define UNION_Int 4
 #define UNION_Double 8
+#define UNION_TAG_UB 0x64400001
+
 
 typedef struct union_bench_param union_bench_param;
 

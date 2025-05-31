@@ -14,8 +14,8 @@ Task 0 resets its counters then
 for reps repetitions {
     all tasks COMPUTES FOR computetime MILLISECONDS then
     all tasks backend execute "
-        COWG_MPI_Allreduce([MESSAGE BUFFER 0], [MESSAGE BUFFER 1], (int)" and numwords and ",
-                MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+        UNION_MPI_Allreduce([MESSAGE BUFFER 0], [MESSAGE BUFFER 1], (int)" and numwords and ",
+                UNION_Int, UNION_Op_Sum, UNION_Comm_World);
         "
 } then
 task 0 logs elapsed_usecs/1000 as "Elapse time (ms)".
