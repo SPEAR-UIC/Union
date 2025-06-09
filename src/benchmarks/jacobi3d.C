@@ -179,7 +179,8 @@ static int jacobi3d_main(int argc, char **argv) {
   // MPI_Pcontrol(1);
   // startTime = MPI_Wtime();
 
-  for(int iterations = 0; iterations < maxiter; iterations++) {
+  int iterations;
+  for(iterations = 0; iterations < maxiter; iterations++) {
     UNION_Compute(compute_time);
     nanosleep(&tim, NULL);
     // if(myRank == 0) printf("iteration %d\n", iterations);
@@ -304,7 +305,7 @@ static int jacobi3d_main(int argc, char **argv) {
 
   if(myRank == 0) {
     // endTime = MPI_Wtime();
-    printf("Jacobi3D: Completed %d iterations\n", iterations);
+    printf("Jacobi3D: Completed %d iterations\n", iterations + 1);
     // printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER-5));
   }
 
