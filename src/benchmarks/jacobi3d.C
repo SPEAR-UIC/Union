@@ -111,6 +111,11 @@ static int jacobi3d_main(int argc, char **argv) {
     //MPI_Abort(UNION_Comm_World, -1);
   }
 
+  struct union_app_data app_data = {
+    .final_iteration = maxiter - 1,
+  };
+  UNION_Pass_app_data(&app_data);
+
   struct timespec tim;
   tim.tv_sec = 0;
   tim.tv_nsec = compute_time;
