@@ -310,7 +310,7 @@ static int jacobi3d_main(int argc, char **argv) {
 
   if(myRank == 0) {
     // endTime = MPI_Wtime();
-    printf("Jacobi3D: Completed %d iterations\n", iterations + 1);
+    printf("Jacobi3D: Completed %d iterations\n", iterations);
     // printf("Time elapsed per iteration: %f\n", (endTime - startTime)/(MAX_ITER-5));
   }
 
