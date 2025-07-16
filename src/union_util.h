@@ -54,6 +54,10 @@ struct union_conceptual_bench {
     int (*conceptual_main)(int argc, char *argv[]);
 };
 
+struct union_app_data {
+    int final_iteration; // id for final iteration
+};
+
 
 void union_conc_add_bench(
         struct union_conceptual_bench const * method);
@@ -63,6 +67,9 @@ int union_conc_bench_load(
         const char* program,
         int argc,
         char *argv[]);
+
+// Call function before first UNION_MPI call that produces any packets. This function will store the information about the application into a space Union can check and respond from.
+void UNION_Pass_app_data(struct union_app_data *);
 
 void UNION_MPI_Comm_size (UNION_Comm comm, int *size);
 void UNION_MPI_Comm_rank( UNION_Comm comm, int *rank );

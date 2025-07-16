@@ -111,6 +111,11 @@ static int jacobi3d_main(int argc, char **argv) {
     //MPI_Abort(UNION_Comm_World, -1);
   }
 
+  struct union_app_data app_data = {
+    .final_iteration = maxiter - 1,
+  };
+  UNION_Pass_app_data(&app_data);
+
   struct timespec tim;
   tim.tv_sec = 0;
   tim.tv_nsec = compute_time;
@@ -123,7 +128,7 @@ static int jacobi3d_main(int argc, char **argv) {
   int myYcoord = (myRank % (num_blocks_x * num_blocks_y)) / num_blocks_x;
   int myZcoord = myRank / (num_blocks_x * num_blocks_y);
 
-  int iterations = 0, i, j, k;
+  int i, j, k;
   double error = 1.0, max_error = 0.0;
 
   if(myRank == 0) {
@@ -179,8 +184,8 @@ static int jacobi3d_main(int argc, char **argv) {
   // MPI_Pcontrol(1);
   // startTime = MPI_Wtime();
 
-  while(/*error > 0.001 &&*/ iterations < maxiter) {
-    iterations++;
+  int iterations;
+  for(iterations = 0; iterations < maxiter; iterations++) {
     UNION_Compute(compute_time);
     nanosleep(&tim, NULL);
     // if(myRank == 0) printf("iteration %d\n", iterations);
@@ -296,6 +301,8 @@ static int jacobi3d_main(int argc, char **argv) {
 
     // if(myRank == 0) printf("Iteration %d %f\n", iterations, max_error);
     if(noBarrier == 0) UNION_MPI_Allreduce(&max_error, &error, 1, UNION_Double, UNION_Op_Max, UNION_Comm_World);
+
+    UNION_Mark_Iteration(iterations);
   } /* end of while loop */
 
   UNION_MPI_Barrier(UNION_Comm_World);
